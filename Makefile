@@ -1,8 +1,11 @@
+SHELL:=/bin/bash
+
 ## ENV NAMES
 LAYER_VERSION = 0.1-alpha.1
 PYTHON_VERSION = 3.8
 SRC_DIR := $(shell pwd)/src
 TESTS_DIR := $(shell pwd)/tests
+PACKAGES_DIR := $(shell pwd)/layer
 LAYER_NAME := headless_chrome
 
 RUNTIME=python$(PYTHON_VERSION)
@@ -15,14 +18,12 @@ CHROME_URL=https://github.com/adieuadieu/serverless-chrome/releases/download/$(C
 SWIFTSHADER_URL=https://github.com/diegoparrilla/amazonlinux2-swiftshader-builder/releases/download/$(SWIFTSHADER_VER)/swiftshader.zip
 
 LOCAL_LAYER_DIR=$(PWD)/build/$(LAYER_NAME)
+LOCAL_LAYER_REL_DIR=build/$(LAYER_NAME)
 OUT_DIR=/out/build/$(LAYER_NAME)/python/lib/$(RUNTIME)/site-packages
 
 TEST_DOCKER_IMAGE_BASE_NAME = test-lambda
 TEST_VERSION = 0.0.1
 TEST_DEFAULT_FUNCTION = lambda_tests.lambda_handler
-
-#REGION=eu-west-1
-#BUCKET=prod-eu-denyset-eu-west-1
 
 define generate_runtime
 	# Install libraries needed by chromedriver and headless chrome
@@ -30,18 +31,26 @@ define generate_runtime
 		docker run --rm -v $(LOCAL_LAYER_DIR)/:/lambda/opt lambci/yumda:2 yum install -y expat fontconfig
 
 	# download chrome driver binary
-	curl -SL $(DRIVER_URL) >$(LOCAL_LAYER_DIR)/chromedriver.zip && \
-		unzip $(LOCAL_LAYER_DIR)/chromedriver.zip -d $(LOCAL_LAYER_DIR) && rm $(LOCAL_LAYER_DIR)/chromedriver.zip
+	curl -SL $(DRIVER_URL) >chromedriver.zip && \
+		unzip chromedriver.zip -d $(LOCAL_LAYER_REL_DIR) && rm chromedriver.zip
+
 	# download headless chrome binary
-	curl -SL $(CHROME_URL) >$(LOCAL_LAYER_DIR)/headless-chromium.zip && \
-		unzip $(LOCAL_LAYER_DIR)/headless-chromium.zip -d $(LOCAL_LAYER_DIR) && rm $(LOCAL_LAYER_DIR)/headless-chromium.zip
+	curl -SL $(CHROME_URL) >headless-chromium.zip && \
+		unzip headless-chromium.zip -d $(LOCAL_LAYER_REL_DIR) && rm headless-chromium.zip
+
 	# download swiftshader libraries
-	curl -SL $(SWIFTSHADER_URL) >$(LOCAL_LAYER_DIR)/swiftshader.zip && \
-		unzip $(LOCAL_LAYER_DIR)/swiftshader.zip -d $(LOCAL_LAYER_DIR) && rm $(LOCAL_LAYER_DIR)/swiftshader.zip 
+	curl -SL $(SWIFTSHADER_URL) >swiftshader.zip && \
+		unzip swiftshader.zip -d $(LOCAL_LAYER_REL_DIR) && rm swiftshader.zip 
+
 endef
 
 define zip_layer
-	pushd $(LOCAL_LAYER_DIR) && zip -r ../../layer/layer-$(LAYER_NAME)-$(LAYER_VERSION).zip * && popd 
+	pushd $(LOCAL_LAYER_REL_DIR) && zip -r ../../layer/layer-$(LAYER_NAME)-$(LAYER_VERSION).zip * && popd 
+endef
+
+define unzip_layer
+	mkdir -p $(PACKAGES_DIR)/layer-$(LAYER_NAME) && \
+		pushd $(PACKAGES_DIR) && unzip layer-$(LAYER_NAME)-$(LAYER_VERSION).zip -d layer-$(LAYER_NAME) && popd
 endef
 
 # List all targets
@@ -76,14 +85,15 @@ test-unit:
 	ci: precommit lint test
 
 ## Build layer with $(LAYER_NAME) library and selenium
-.PHONY .ONESHELL:	build
+.PHONY:	build
 build: clean 
 	# Create build environment
-	mkdir -p build &&  mkdir -p layer
+	mkdir -p $(LOCAL_LAYER_REL_DIR) && mkdir -p $(LOCAL_LAYER_REL_DIR)/python && mkdir -p layer
 	# Add the selenium and default wrapper library
-	docker run -v $(PWD):/out -it lambci/lambda:build-$(RUNTIME) \
-			pip install selenium==$(SELENIUM_VER) -t $(OUT_DIR) && \
-		cp src/$(LAYER_NAME).py $(LOCAL_LAYER_DIR)/python/$(LAYER_NAME).py
+	docker run -v $(PWD):/out lambci/lambda:build-$(RUNTIME) \
+		pip install selenium==$(SELENIUM_VER) -t $(OUT_DIR) && \
+		cp src/$(LAYER_NAME).py $(LOCAL_LAYER_REL_DIR)/python/$(LAYER_NAME).py
+
 	$(call generate_runtime)
 	$(call zip_layer)
 
@@ -91,7 +101,8 @@ build: clean
 .PHONY .ONESHELL:	build-runtime-only
 build-runtime-only: clean
 	# Create build environment
-	mkdir -p build &&  mkdir -p layer
+	mkdir -p $(LOCAL_LAYER_REL_DIR) && mkdir -p $(LOCAL_LAYER_REL_DIR)/python && mkdir -p layer
+
 	$(call generate_runtime)
 	$(call zip_layer)
 
@@ -101,10 +112,19 @@ clean:
 	# Clean build environment
 	rm -rf build layer
 
+## Expand compressed layer file
+.PHONY:	.expand-layer
+.expand-layer: 
+	$(call unzip_layer)
+
 ## Run test integration suite. It runs like a lambda... bizarre isn't it?
 .PHONY:	test-integration
-PACKAGES_DIR = layer
-test-integration: 
-	mkdir -p $(PACKAGES_DIR)/layer-$(LAYER_NAME) && rm -rf $(PACKAGES_DIR)/layer-$(LAYER_NAME) && \
-		pushd $(PACKAGES_DIR) && unzip layer-$(LAYER_NAME)-$(LAYER_VERSION).zip -d layer-$(LAYER_NAME) && popd
-	docker run --rm -v $(TESTS_DIR):/var/task -v $(PWD)/$(PACKAGES_DIR)/layer-$(LAYER_NAME):/opt lambci/lambda:$(RUNTIME) $(TEST_DEFAULT_FUNCTION)
+test-integration: .expand-layer
+	$(eval res := $(shell docker run --rm -v $(TESTS_DIR):/var/task -v $(PACKAGES_DIR)/layer-$(LAYER_NAME):/opt lambci/lambda:$(RUNTIME) $(TEST_DEFAULT_FUNCTION)))
+	exit $(res)
+
+## Publish new layer version
+.PHONY:	publish
+publish: build test-integration 
+	# Deploy the release version
+	echo "PUBLISHED!"
