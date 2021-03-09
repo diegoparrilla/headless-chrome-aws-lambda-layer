@@ -1,0 +1,7 @@
+black
+mock
+pre-commit
+pyfakefs
+pylint
+six
+unittest-xml-reporting
