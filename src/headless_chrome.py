@@ -13,10 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
+import logging
 import os
 import uuid
-import logging
 
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
@@ -26,7 +25,7 @@ logging.getLogger().setLevel(logging.ERROR)
 
 FONTCONFIG_LINUX_PATH: str = "/opt/etc/fonts"
 DOWNLOAD_LOCATION: str = "/tmp/"
-TMP_FOLDER: str = "/tmp/{}".format(uuid.uuid4())
+TMP_FOLDER: str = f"/tmp/{uuid.uuid4()}"
 USER_AGENT: str = "Mozilla/5.0 (X11; Linux x86_64) \
  AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
 CHROMEDRIVER_EXEC_PATH: str = "/opt/chromedriver"
@@ -43,14 +42,14 @@ HEADLESS_CHROMIUM_PARAMS: list = [
     "--hide-scrollbars",
     "--enable-logging",
     "--ignore-certificate-errors",
-    "--log-level={}".format(HEADLESS_CHROMIUM_LOG_LEVEL),
-    "--v={}".format(HEADLESS_CHROMIUM_VERBOSITY_LEVEL),
-    "--window-size={}".format(HEADLESS_CHROMIUM_WINDOW_SIZE),
+    f"--log-level={HEADLESS_CHROMIUM_LOG_LEVEL}",
+    f"--v={HEADLESS_CHROMIUM_VERBOSITY_LEVEL}",
+    f"--window-size={HEADLESS_CHROMIUM_WINDOW_SIZE}",
     "--user-data-dir={}".format(TMP_FOLDER + "/user-data"),
     "--data-path={}".format(TMP_FOLDER + "/data-path"),
-    "--homedir={}".format(TMP_FOLDER),
+    f"--homedir={TMP_FOLDER}",
     "--disk-cache-dir={}".format(TMP_FOLDER + "/cache-dir"),
-    "--user-agent={}".format(USER_AGENT),
+    f"--user-agent={USER_AGENT}",
 ]
 
 
@@ -110,7 +109,7 @@ for param in HEADLESS_CHROMIUM_PARAMS:
     logging.info("Argument passed to headless chromium: %s", param)
 
 experimental_prefs: dict = configure_download_location(
-    download_location=DOWNLOAD_LOCATION
+    download_location=DOWNLOAD_LOCATION,
 )
 options.add_experimental_option("prefs", experimental_prefs)
 

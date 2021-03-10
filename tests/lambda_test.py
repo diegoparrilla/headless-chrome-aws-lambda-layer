@@ -13,16 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-
-import sys
-import subprocess
+# pylint: disable=C0415
 import os
-import uuid
+import subprocess
 import unittest
-import time
-
-# import undetected_chromedriver as uc
-# from headless_chrome import driver
 
 CHROMEDRIVER_PATH = "/opt/chromedriver"
 CHROMEDRIVER_VERSION = (
@@ -51,22 +45,22 @@ class WebDriverSystemTestCase(unittest.TestCase):
     def test_find_headless_chromium_executable(self):
         """ Test if the headless chromium executable is in the right path """
         found = os.path.exists(HEADLESS_CHROMIUM_PATH) and os.path.isfile(
-            HEADLESS_CHROMIUM_PATH
+            HEADLESS_CHROMIUM_PATH,
         )
         self.assertTrue(found)
 
     def test_find_swiftshader_libs(self):
         """ Test if the swiftshared libs are in the right path """
         found = os.path.exists(SWIFTSHADER_FOLDER_PATH) and os.path.isdir(
-            SWIFTSHADER_FOLDER_PATH
+            SWIFTSHADER_FOLDER_PATH,
         )
         self.assertTrue(found)
         found = os.path.exists(SWIFTSHADER_LIBEGL_PATH) and os.path.isfile(
-            SWIFTSHADER_LIBEGL_PATH
+            SWIFTSHADER_LIBEGL_PATH,
         )
         self.assertTrue(found)
         found = os.path.exists(SWIFTSHADER_LIBGLESV2_PATH) and os.path.isfile(
-            SWIFTSHADER_LIBGLESV2_PATH
+            SWIFTSHADER_LIBGLESV2_PATH,
         )
         self.assertTrue(found)
 
@@ -93,11 +87,6 @@ class WebDriverSystemTestCase(unittest.TestCase):
     def test_find_nss3_lib(self):
         """ Test if the nss3 lib is in the right path """
         found = os.path.exists(NSS3_LIB_PATH) and os.path.isfile(NSS3_LIB_PATH)
-        self.assertTrue(found)
-
-    def test_find_expat_lib(self):
-        """ Test if the nss3 lib is in the right path """
-        found = os.path.exists(EXPAT_LIB_PATH) and os.path.isfile(EXPAT_LIB_PATH)
         self.assertTrue(found)
 
     def test_find_expat_lib(self):
@@ -132,6 +121,7 @@ class ChromiumSystemTestCase(unittest.TestCase):
                 self.DISABLEGPU_PARAM,
             ],
             capture_output=True,
+            check=True,
         )
         self.assertTrue(out)
 
@@ -147,7 +137,7 @@ class ChromiumSystemTestCase(unittest.TestCase):
     #                screenshot_param,
     #                "https://www.google.com",
     #            ],
-    #            capture_output=True,
+    #            capture_output=True,check=True
     #        )
     #        filename = screenshot_param.split("=")[1]
     #        found = os.path.exists(filename) and os.path.isfile(filename)
@@ -168,6 +158,7 @@ class ChromiumSystemTestCase(unittest.TestCase):
                 "https://www.google.com",
             ],
             capture_output=True,
+            check=True,
         )
         stdout = out.stdout
         self.assertGreater(stdout.count(b"www.google.com"), 0)
@@ -187,6 +178,7 @@ class ChromedriverSystemTestCase(unittest.TestCase):
         out = subprocess.run(
             [CHROMEDRIVER_PATH, "--version"],
             capture_output=True,
+            check=True,
         )
         stdout = out.stdout.decode()
         version = stdout.split(" ")
@@ -223,10 +215,10 @@ class SeleniumTestCase(unittest.TestCase):
         """ Test if Selenium can read an XPATH from a page """
         # If the documentation site changes this test will fail...
         self._driver.get(
-            "https://developers.google.com/web/updates/2017/04/headless-chrome"
+            "https://developers.google.com/web/updates/2017/04/headless-chrome",
         )
         elem = self._driver.find_element_by_xpath(
-            '//*[@id="gc-wrapper"]/main/devsite-content/article/h1'
+            '//*[@id="gc-wrapper"]/main/devsite-content/article/h1',
         )
         inner_html = elem.get_attribute("innerHTML")
         self.assertGreater(inner_html.count("Headless Chrome"), 0)
@@ -235,16 +227,16 @@ class SeleniumTestCase(unittest.TestCase):
         """ Test if Selenium can read wait for an element in a page to render """
         self._driver.get("https://www.msn.com")
         elem_clients = self._web_driver_wait(self._driver, timeout=20).until(
-            lambda d: d.find_element_by_xpath('//*[@id="foot"]/footer/a')
+            lambda d: d.find_element_by_xpath('//*[@id="foot"]/footer/a'),
         )
         inner_html = elem_clients.get_attribute("innerHTML")
         self.assertGreater(inner_html.count("Microsoft"), 0)
 
 
-def lambda_handler(event, context):
+def lambda_handler(_event, _context):
     """ Default lambda handler to trigger the integration tests. It's bizarre, I know. """
 
-    test = unittest.main(module="lambda_tests", exit=False, verbosity=3)
+    test = unittest.main(module="lambda_test", exit=False, verbosity=3)
     print(test.result)
 
     return int(len(test.result.errors) or len(test.result.failures))

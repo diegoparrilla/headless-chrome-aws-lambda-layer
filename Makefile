@@ -1,7 +1,7 @@
 SHELL:=/bin/bash
 
 ## ENV NAMES
-LAYER_VERSION = 0.1-alpha.1
+LAYER_VERSION=dev
 PYTHON_VERSION = 3.8
 SRC_DIR := $(shell pwd)/src
 TESTS_DIR := $(shell pwd)/tests
@@ -23,7 +23,7 @@ OUT_DIR=/out/build/$(LAYER_NAME)/python/lib/$(RUNTIME)/site-packages
 
 TEST_DOCKER_IMAGE_BASE_NAME = test-lambda
 TEST_VERSION = 0.0.1
-TEST_DEFAULT_FUNCTION = lambda_tests.lambda_handler
+TEST_DEFAULT_FUNCTION = lambda_test.lambda_handler
 
 define generate_runtime
 	# Install libraries needed by chromedriver and headless chrome
@@ -40,12 +40,12 @@ define generate_runtime
 
 	# download swiftshader libraries
 	curl -SL $(SWIFTSHADER_URL) >swiftshader.zip && \
-		unzip swiftshader.zip -d $(LOCAL_LAYER_REL_DIR) && rm swiftshader.zip 
+		unzip swiftshader.zip -d $(LOCAL_LAYER_REL_DIR) && rm swiftshader.zip
 
 endef
 
 define zip_layer
-	pushd $(LOCAL_LAYER_REL_DIR) && zip -r ../../layer/layer-$(LAYER_NAME)-$(LAYER_VERSION).zip * && popd 
+	pushd $(LOCAL_LAYER_REL_DIR) && zip -r ../../layer/layer-$(LAYER_NAME)-$(LAYER_VERSION).zip * && popd
 endef
 
 define unzip_layer
@@ -86,7 +86,7 @@ test-unit:
 
 ## Build layer with $(LAYER_NAME) library and selenium
 .PHONY:	build
-build: clean 
+build: clean
 	# Create build environment
 	mkdir -p $(LOCAL_LAYER_REL_DIR) && mkdir -p $(LOCAL_LAYER_REL_DIR)/python && mkdir -p layer
 	# Add the selenium and default wrapper library
@@ -114,7 +114,7 @@ clean:
 
 ## Expand compressed layer file
 .PHONY:	.expand-layer
-.expand-layer: 
+.expand-layer:
 	$(call unzip_layer)
 
 ## Run test integration suite. It runs like a lambda... bizarre isn't it?
@@ -123,8 +123,8 @@ test-integration: .expand-layer
 	$(eval res := $(shell docker run --rm -v $(TESTS_DIR):/var/task -v $(PACKAGES_DIR)/layer-$(LAYER_NAME):/opt lambci/lambda:$(RUNTIME) $(TEST_DEFAULT_FUNCTION)))
 	exit $(res)
 
-## Publish new layer version
-.PHONY:	publish
-publish: build test-integration 
+## Create and test the new layer version
+.PHONY:	all
+all: precommit lint build test-integration
 	# Deploy the release version
 	echo "PUBLISHED!"
