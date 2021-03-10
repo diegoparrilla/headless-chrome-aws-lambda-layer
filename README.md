@@ -57,7 +57,7 @@ The layer is under the newly created folder `layer` as a zip file.
 make test-integration
 ```
 
-The process will create a new layer and will run the tests found in `tests/lambda_test.py`. 
+The process will create a new layer and will run the tests found in `tests/lambda_test.py`.
 
 ### Run code pre-commit rules
 
@@ -65,7 +65,7 @@ The process will create a new layer and will run the tests found in `tests/lambd
 make precommit
 ```
 
-Check the code with the rules predefined.  
+Check the code with the rules predefined.
 
 ### Clean folders
 
@@ -73,7 +73,7 @@ Check the code with the rules predefined.
 make clean
 ```
 
-Delete all temporary files and folders used during the build and test time.  
+Delete all temporary files and folders used during the build and test time.
 
 ### Run all targets
 
@@ -81,7 +81,7 @@ Delete all temporary files and folders used during the build and test time.
 make all
 ```
 
-Run all targets in the correct order to obtain a fully tested layer ready to be released.  
+Run all targets in the correct order to obtain a fully tested layer ready to be released.
 
 
 ## What's next?
