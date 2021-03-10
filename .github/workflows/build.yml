@@ -1,4 +1,4 @@
-name: Create layer when pushed
+name: Build
 
 on:
   push:

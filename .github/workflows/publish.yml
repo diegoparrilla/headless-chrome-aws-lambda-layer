@@ -1,5 +1,4 @@
-name: Create layer and publish as a new release
-
+name: Release
 on:
   push:
     tags:
