@@ -17,6 +17,7 @@ jobs:
     - name: Install dev dependencies
       run: |
         python -m pip install --upgrade pip
+        if [ -f requirements/dev.txt ]; then pip install -r requirements/dev.txt; fi
     - name: Install compile time dependencies
       run: if [ -f requirements/layer.txt ]; then pip install -r requirements/layer.txt; fi
     - name: Build image
