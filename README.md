@@ -20,7 +20,7 @@ This layer is designed to be part of a Python 3.8 runtime in AWS Lambda, but pro
 The developr has to add the `.zip` file found in the [`releases`](https://github.com/diegoparrilla/headless-chrome-aws-lambda-layer/releases) section of this repo as a layer of the AWS Lambda function, or build the layer from scratch first. For example:
 
 ```
-aws s3 cp layer-headless_chrome-v0.1-alpha.3.zip s3://<YOUR_BUCKET_NAME>/layer-headless_chrome.zip
+aws s3 cp layer-headless_chrome-v0.1-beta.4.zip s3://<YOUR_BUCKET_NAME>/layer-headless_chrome.zip
 aws lambda publish-layer-version \
     --layer-name HeadlessChromium \
     --region <YOUR_AWS_REGION> \

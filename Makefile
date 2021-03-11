@@ -12,10 +12,10 @@ RUNTIME=python$(PYTHON_VERSION)
 SELENIUM_VER=3.141.0
 CHROME_BINARY_VER=v1.0.0-57
 CHROMEDRIVER_VER=86.0.4240.22
-SWIFTSHADER_VER=v7.0-alpha.0
+SWIFTSHADER_VER=v7.0-beta.0
 DRIVER_URL=https://chromedriver.storage.googleapis.com/$(CHROMEDRIVER_VER)/chromedriver_linux64.zip
 CHROME_URL=https://github.com/adieuadieu/serverless-chrome/releases/download/$(CHROME_BINARY_VER)/stable-headless-chromium-amazonlinux-2.zip
-SWIFTSHADER_URL=https://github.com/diegoparrilla/amazonlinux2-swiftshader-builder/releases/download/$(SWIFTSHADER_VER)/swiftshader.zip
+SWIFTSHADER_URL=https://github.com/diegoparrilla/amazonlinux2-swiftshader-builder/releases/download/$(SWIFTSHADER_VER)/swiftshader-$(SWIFTSHADER_VER).zip
 
 LOCAL_LAYER_DIR=$(PWD)/build/$(LAYER_NAME)
 LOCAL_LAYER_REL_DIR=build/$(LAYER_NAME)
