@@ -17,6 +17,7 @@ limitations under the License.
 import os
 import subprocess
 import unittest
+import uuid
 
 CHROMEDRIVER_PATH = "/opt/chromedriver"
 CHROMEDRIVER_VERSION = (
@@ -125,26 +126,27 @@ class ChromiumSystemTestCase(unittest.TestCase):
         )
         self.assertTrue(out)
 
-    #    def test_screenshot_filesystem(self):
-    #        """ Test if the chromium executable can dump a screenshot of a website """
-    #        screenshot_param = self.DUMPSCREENSHOT_PARAM % uuid.uuid4()
-    #        out = subprocess.run(
-    #            [
-    #                HEADLESS_CHROMIUM_PATH,
-    #                self.HEADLESS_PARAM,
-    #                self.NOSANDBOX_PARAM,
-    #                self.DISABLEGPU_PARAM,
-    #                screenshot_param,
-    #                "https://www.google.com",
-    #            ],
-    #            capture_output=True,check=True
-    #        )
-    #        filename = screenshot_param.split("=")[1]
-    #        found = os.path.exists(filename) and os.path.isfile(filename)
-    #        self.assertTrue(found)
-    #        os.remove(filename)
-    #        found = os.path.exists(filename) and os.path.isfile(filename)
-    #        self.assertFalse(found)
+    def test_screenshot_filesystem(self):
+        """ Test if the chromium executable can dump a screenshot of a website """
+        screenshot_param = self.DUMPSCREENSHOT_PARAM % uuid.uuid4()
+        out = subprocess.run(
+            [
+                HEADLESS_CHROMIUM_PATH,
+                "-v=99",
+                self.HEADLESS_PARAM,
+                self.NOSANDBOX_PARAM,
+                self.DISABLEGPU_PARAM,
+                screenshot_param,
+                "https://www.google.com",
+            ],
+            capture_output=True,check=True
+        )
+        filename = screenshot_param.split("=")[1]
+        found = os.path.exists(filename) and os.path.isfile(filename)
+        self.assertTrue(found)
+        os.remove(filename)
+        found = os.path.exists(filename) and os.path.isfile(filename)
+        self.assertFalse(found)
 
     def test_dumpdom_filesystem(self):
         """ Test if the chromium executable can dump a dom of a website """
