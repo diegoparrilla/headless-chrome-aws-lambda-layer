@@ -129,7 +129,7 @@ class ChromiumSystemTestCase(unittest.TestCase):
     def test_screenshot_filesystem(self):
         """ Test if the chromium executable can dump a screenshot of a website """
         screenshot_param = self.DUMPSCREENSHOT_PARAM % uuid.uuid4()
-        out = subprocess.run(
+        subprocess.run(
             [
                 HEADLESS_CHROMIUM_PATH,
                 "-v=99",
@@ -139,7 +139,8 @@ class ChromiumSystemTestCase(unittest.TestCase):
                 screenshot_param,
                 "https://www.google.com",
             ],
-            capture_output=True,check=True
+            capture_output=True,
+            check=True,
         )
         filename = screenshot_param.split("=")[1]
         found = os.path.exists(filename) and os.path.isfile(filename)
