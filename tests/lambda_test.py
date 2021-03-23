@@ -102,6 +102,8 @@ class ChromiumSystemTestCase(unittest.TestCase):
     HEADLESS_PARAM = "--headless"
     NOSANDBOX_PARAM = "--no-sandbox"
     DISABLEGPU_PARAM = "--disable-gpu"
+    SINGLEPROCESS_PARAM = "--single_process"
+    DISABLEDEVSHMUSAGE_PARAM = "--disable-dev-shm-usage"
     DUMPSCREENSHOT_PARAM = "--screenshot=/tmp/out-%s.png"
     DUMPDOM_PARAM = "--dump-dom"
 
@@ -120,27 +122,31 @@ class ChromiumSystemTestCase(unittest.TestCase):
                 self.HEADLESS_PARAM,
                 self.NOSANDBOX_PARAM,
                 self.DISABLEGPU_PARAM,
+                self.SINGLEPROCESS_PARAM,
+                self.DISABLEDEVSHMUSAGE_PARAM,
             ],
             capture_output=True,
-            check=True,
+            check=False,
         )
         self.assertTrue(out)
 
     def test_screenshot_filesystem(self):
         """ Test if the chromium executable can dump a screenshot of a website """
         screenshot_param = self.DUMPSCREENSHOT_PARAM % uuid.uuid4()
-        subprocess.run(
+        _out = subprocess.run(
             [
                 HEADLESS_CHROMIUM_PATH,
                 "-v=99",
                 self.HEADLESS_PARAM,
                 self.NOSANDBOX_PARAM,
                 self.DISABLEGPU_PARAM,
+                self.SINGLEPROCESS_PARAM,
+                self.DISABLEDEVSHMUSAGE_PARAM,
                 screenshot_param,
                 "https://www.google.com",
             ],
             capture_output=True,
-            check=True,
+            check=False,
         )
         filename = screenshot_param.split("=")[1]
         found = os.path.exists(filename) and os.path.isfile(filename)
@@ -158,10 +164,12 @@ class ChromiumSystemTestCase(unittest.TestCase):
                 self.NOSANDBOX_PARAM,
                 self.DISABLEGPU_PARAM,
                 self.DUMPDOM_PARAM,
+                self.SINGLEPROCESS_PARAM,
+                self.DISABLEDEVSHMUSAGE_PARAM,
                 "https://www.google.com",
             ],
             capture_output=True,
-            check=True,
+            check=False,
         )
         stdout = out.stdout
         self.assertGreater(stdout.count(b"www.google.com"), 0)
@@ -195,14 +203,11 @@ class ChromedriverSystemTestCase(unittest.TestCase):
 class SeleniumTestCase(unittest.TestCase):
     """ Selenium packaged tests """
 
+    TEST_USER_AGENT = "TEST_USER_AGENT_UA"
+
     @classmethod
     def setUpClass(cls):
         os.environ["FONTCONFIG_PATH"] = "/opt/etc/fonts"
-        from headless_chrome import driver
-        from selenium.webdriver.support.ui import WebDriverWait
-
-        cls._driver = driver
-        cls._web_driver_wait = WebDriverWait
 
     @classmethod
     def tearDownClass(cls):
@@ -210,17 +215,23 @@ class SeleniumTestCase(unittest.TestCase):
 
     def test_get_full_page(self):
         """ Test if Selenium can read a single page """
-        self._driver.get("https://www.google.com")
-        out = self._driver.page_source
+        from headless_chrome import create_driver
+
+        driver = create_driver()
+        driver.get("https://www.google.com")
+        out = driver.page_source
         self.assertGreater(out.count("https://www.google.com/"), 0)
 
     def test_get_xpath(self):
         """ Test if Selenium can read an XPATH from a page """
         # If the documentation site changes this test will fail...
-        self._driver.get(
+        from headless_chrome import create_driver
+
+        driver = create_driver()
+        driver.get(
             "https://developers.google.com/web/updates/2017/04/headless-chrome",
         )
-        elem = self._driver.find_element_by_xpath(
+        elem = driver.find_element_by_xpath(
             '//*[@id="gc-wrapper"]/main/devsite-content/article/h1',
         )
         inner_html = elem.get_attribute("innerHTML")
@@ -228,12 +239,41 @@ class SeleniumTestCase(unittest.TestCase):
 
     def test_wait_for_webdriver(self):
         """ Test if Selenium can read wait for an element in a page to render """
-        self._driver.get("https://www.msn.com")
-        elem_clients = self._web_driver_wait(self._driver, timeout=20).until(
+        from headless_chrome import create_driver
+        from selenium.webdriver.support.ui import WebDriverWait
+
+        driver = create_driver()
+        driver.get("https://www.msn.com")
+        elem_clients = WebDriverWait(driver, timeout=20).until(
             lambda d: d.find_element_by_xpath('//*[@id="foot"]/footer/a'),
         )
         inner_html = elem_clients.get_attribute("innerHTML")
         self.assertGreater(inner_html.count("Microsoft"), 0)
+
+    def test_custom_parameter_page_size(self):
+        """ Test if it's possible to pass custom page sizd parameter to the driver """
+        from headless_chrome import create_driver
+
+        new_params = ["--window-size=800x600"]
+        driver = create_driver(new_params)
+        driver.get("https://www.google.com")
+        window_size = driver.get_window_size()
+        out = driver.page_source
+        self.assertGreater(out.count("https://www.google.com/"), 0)
+        self.assertEqual(window_size["width"], 800)
+        self.assertEqual(window_size["height"], 600)
+
+    def test_custom_parameter_user_agent(self):
+        """ Test if it's possible to pass a custom user agent parameter to the driver """
+        from headless_chrome import create_driver
+
+        new_params = ["--user-agent=%s" % self.TEST_USER_AGENT]
+        driver = create_driver(new_params)
+        driver.get("https://www.google.com")
+        user_agent = driver.execute_script("return navigator.userAgent;")
+        out = driver.page_source
+        self.assertGreater(out.count("https://www.google.com/"), 0)
+        self.assertEqual(user_agent, self.TEST_USER_AGENT)
 
 
 def lambda_handler(_event, _context):

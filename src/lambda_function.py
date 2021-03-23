@@ -15,7 +15,7 @@ limitations under the License.
 """
 import logging
 
-from headless_chrome import driver
+from headless_chrome import create_driver
 
 logging.basicConfig()
 logging.getLogger().setLevel(logging.INFO)
@@ -24,5 +24,6 @@ logging.getLogger().setLevel(logging.INFO)
 def lambda_handler(_event, _context):
     """ Sample handle about how to use the imported the layer """
 
+    driver = create_driver()
     driver.get("https://www.google.com")
     return driver.page_source

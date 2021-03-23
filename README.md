@@ -20,7 +20,7 @@ This layer is designed to be part of a Python 3.8 runtime in AWS Lambda, but pro
 The developr has to add the `.zip` file found in the [`releases`](https://github.com/diegoparrilla/headless-chrome-aws-lambda-layer/releases) section of this repo as a layer of the AWS Lambda function, or build the layer from scratch first. For example:
 
 ```
-aws s3 cp layer-headless_chrome-v0.1-beta.4.zip s3://<YOUR_BUCKET_NAME>/layer-headless_chrome.zip
+aws s3 cp layer-headless_chrome-v0.2-beta.0.zip s3://<YOUR_BUCKET_NAME>/layer-headless_chrome.zip
 aws lambda publish-layer-version \
     --layer-name HeadlessChromium \
     --region <YOUR_AWS_REGION> \
@@ -28,13 +28,29 @@ aws lambda publish-layer-version \
     --compatible-runtimes python3.8
 ```
 
-Now create a new AWS Lambda function and add the layer uploaded. Now the code in the lambda handler can use the libraries found in the layer as follows:
+Now create a new AWS Lambda function and add the layer uploaded. The code in the lambda handler will be able to use the libraries found in the layer as follows:
 ```
-from headless_chrome import driver
+from headless_chrome import create_driver
 
 def lambda_handler(_event, _context):
     """ Sample handle about how to use the imported the layer """
 
+    driver = create_driver()
+    driver.get("https://www.google.com")
+    return driver.page_source
+```
+
+It's possible to pass custom parameters of the Chromium headless browser as an argument of type `list` to the `create_driver` function. These parameters will override the existing parameters by default. Example:
+```
+from headless_chrome import create_driver
+
+def lambda_handler(_event, _context):
+    """ Sample handle about how to use the imported the layer with custom parameters """
+    new_params = [
+        "--window-size=800x600",
+        "--user-agent=MyUserAgent"
+    ]
+    driver = create_driver(new_params)
     driver.get("https://www.google.com")
     return driver.page_source
 ```
@@ -89,7 +105,7 @@ Run all targets in the correct order to obtain a fully tested layer ready to be 
 This layer offers a boilerplate library to use in AWS Lambda, but it's possible to use your own Selenium Webdriver configuration in your code in the lambda handler or another layer. Please review the code in `src/headless_chrome.py` to get a better understanding of the environment created to run Selenium serverless. For example:
 
 - `chromedriver` and `headless-chromium` executables are located under `/opt`.
-- `--headless` and `--no-sandbox`are a must. Read all the parameters needed in the code.
+- `--headless`, `--single-process`, `--disable-dev-shm-usage`, `--disable-gpu` and `--no-sandbox`are a must. Read all the parameters needed in the code.
 - `headless-chromium` needs the environment variable `FONTCONFIG_PATH` to work. Don't forget it!.
 - etc.
 

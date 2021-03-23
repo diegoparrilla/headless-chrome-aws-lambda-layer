@@ -20,19 +20,22 @@ import uuid
 from selenium.webdriver import Chrome
 from selenium.webdriver.chrome.options import Options
 
-logging.basicConfig()
-logging.getLogger().setLevel(logging.ERROR)
+# logging.basicConfig()
+# logging.getLogger().setLevel(logging.INFO)
 
+# The constants with information about the layer layout
 FONTCONFIG_LINUX_PATH: str = "/opt/etc/fonts"
 DOWNLOAD_LOCATION: str = "/tmp/"
 TMP_FOLDER: str = f"/tmp/{uuid.uuid4()}"
-USER_AGENT: str = "Mozilla/5.0 (X11; Linux x86_64) \
- AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36"
 CHROMEDRIVER_EXEC_PATH: str = "/opt/chromedriver"
 HEADLESS_CHROMIUM_EXEC_PATH: str = "/opt/headless-chromium"
 HEADLESS_CHROMIUM_LOG_LEVEL: int = 0
 HEADLESS_CHROMIUM_VERBOSITY_LEVEL: int = 0
+
+# The default parameters. Modify at your own risk.
 HEADLESS_CHROMIUM_WINDOW_SIZE: str = "1280x1696"
+USER_AGENT: str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) \
+    AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.111 Safari/537.36"
 HEADLESS_CHROMIUM_PARAMS: list = [
     "--headless",
     "--no-sandbox",
@@ -52,8 +55,12 @@ HEADLESS_CHROMIUM_PARAMS: list = [
     f"--user-agent={USER_AGENT}",
 ]
 
+# Need to configure the FONTCONFIG_PATH to work
+os.environ["FONTCONFIG_PATH"] = FONTCONFIG_LINUX_PATH
+logging.info("FONTCONFIG_PATH configured: %s", FONTCONFIG_LINUX_PATH)
 
-def create_folders(tmp_folder: str = None):
+
+def _create_folders(tmp_folder: str = None):
     """ Created the chrome data structure under tmp_folder """
     if not os.path.exists(tmp_folder):
         os.makedirs(tmp_folder)
@@ -75,7 +82,7 @@ def create_folders(tmp_folder: str = None):
         logging.info("Created folder: %s", tmp_cache_dir)
 
 
-def configure_download_location(download_location: str = None) -> dict:
+def _configure_download_location(download_location: str = None) -> dict:
     """ Configure the download folders, if they exists """
     prefs = {}
     if download_location:
@@ -94,24 +101,57 @@ def configure_download_location(download_location: str = None) -> dict:
     return prefs
 
 
-# Need to configure the FONTCONFIG_PATH to work
-os.environ["FONTCONFIG_PATH"] = FONTCONFIG_LINUX_PATH
-logging.info("FONTCONFIG_PATH configured: %s", FONTCONFIG_LINUX_PATH)
-options: Options = Options()
+def _convert_param_list_to_dict(param_list: list, parameters_dict: dict) -> dict:
+    """ Convert the list of parameters to a list of duples (parameter,argument) """
+    for param in param_list:
+        param_array: list = param.split("=")
+        key: str = param_array[0]
+        value: str = None
+        if len(param_array) > 1:
+            value = param_array[1]
+        parameters_dict[key] = value
+    return parameters_dict
 
-create_folders(tmp_folder=TMP_FOLDER)
 
-options.binary_location = HEADLESS_CHROMIUM_EXEC_PATH
-logging.info("Headless Chromium binary location path: %s", HEADLESS_CHROMIUM_EXEC_PATH)
+def create_driver(custom_config: list = None) -> Chrome:
+    """ Returns an instance of the Chrome webdriver ready to use """
 
-for param in HEADLESS_CHROMIUM_PARAMS:
-    options.add_argument(param)
-    logging.info("Argument passed to headless chromium: %s", param)
+    # Create folders, if needed
+    _create_folders(tmp_folder=TMP_FOLDER)
 
-experimental_prefs: dict = configure_download_location(
-    download_location=DOWNLOAD_LOCATION,
-)
-options.add_experimental_option("prefs", experimental_prefs)
+    # Configure Chromedriver and Headless Chromium
+    options: Options = Options()
+    options.binary_location = HEADLESS_CHROMIUM_EXEC_PATH
+    logging.info(
+        "Headless Chromium binary location path: %s",
+        HEADLESS_CHROMIUM_EXEC_PATH,
+    )
 
-driver = Chrome(CHROMEDRIVER_EXEC_PATH, options=options)
-logging.info("Driver chromedriver initialized in: %s", CHROMEDRIVER_EXEC_PATH)
+    # Create the new dict with the combination of default and new parameters
+    parameters_dict: dict = _convert_param_list_to_dict(HEADLESS_CHROMIUM_PARAMS, {})
+    if custom_config is not None:
+        parameters_dict: dict = _convert_param_list_to_dict(
+            custom_config,
+            parameters_dict,
+        )
+
+    # Convert the dict to a list of parameters for Chromium
+    final_params: list = []
+    for key, value in parameters_dict.items():
+        if value is not None:
+            final_params.append(f"{key}={value}")
+        else:
+            final_params.append("%s" % key)
+
+    for param in final_params:
+        options.add_argument(param)
+        logging.info("Argument passed to headless chromium: %s", param)
+
+    experimental_prefs: dict = _configure_download_location(
+        download_location=DOWNLOAD_LOCATION,
+    )
+    options.add_experimental_option("prefs", experimental_prefs)
+
+    driver = Chrome(CHROMEDRIVER_EXEC_PATH, options=options)
+    logging.info("Driver chromedriver initialized in: %s", CHROMEDRIVER_EXEC_PATH)
+    return driver
